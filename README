@@ -1,0 +1,7 @@
+FuelPHP_UPnP
+
+This is a module (fuel/app/modules/upnp) for interacting with UPnP devices on the network.
+
+Mediaservers, Renderers, and Search functionality are tested as working.  Vendor UPnP class will need to be replaced with native FuelPHP classes in the near future.
+
+Work in progress.
