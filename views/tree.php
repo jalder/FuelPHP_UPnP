@@ -22,7 +22,8 @@ if(isset($description)){
 			<div class="modal-body">
 				<input type="hidden" name="device" value="52c8a32c260495702ae8944b" />
 				<input type="hidden" name="url" value="" />
-			...	<span class="glyphicon glyphicon-play play-movie"></span>
+			...	<span class="glyphicon glyphicon-play play-movie" rel="52c8a32c260495702ae8944b" title="Play on Roku"></span>
+				<span class="glyphicon glyphicon-play play-movie" rel="52e3f1ec2604956d077b23c6" title="Play on eHome"></span>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -107,7 +108,8 @@ $(document).ready(function(){
 	$('#movieModal').on('click','.play-movie',function(){
 		console.log('Playing Movie');
 		//do get
-		var device = $('#movieModal input[name="device"]').val();
+		//var device = $('#movieModal input[name="device"]').val();
+		var device = $(this).attr('rel');
 		var url = $('#movieModal input[name="url"]').val();
 		$.get('/cast/device/play',{'device':device,'url':url},function(data){
 			console.log(data);
