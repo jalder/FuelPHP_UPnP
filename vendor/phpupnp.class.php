@@ -26,7 +26,7 @@ class phpUPnP
 	 * @todo Allow unicasting.
 	 * @todo Sort arguments better.
 	 */
-	public function mSearch( $st = 'ssdp:all', $mx = 2, $man = 'ssdp:discover', $from = null, $port = null, $sockTimout = '5' )
+	public function mSearch( $st = 'ssdp:all', $mx = 2, $man = 'ssdp:discover', $from = null, $port = null, $sockTimout = '2' )
 	{
 		// BUILD MESSAGE
 		$msg  = 'M-SEARCH * HTTP/1.1' . "\r\n";
@@ -43,6 +43,7 @@ class phpUPnP
 		$send_ret = socket_sendto( $sock, $msg, strlen( $msg ), 0, '239.255.255.250', 1900);
 
 		// SET TIMEOUT FOR RECIEVE
+
 		socket_set_option( $sock, SOL_SOCKET, SO_RCVTIMEO, array( 'sec'=>$sockTimout, 'usec'=>'0' ) );
 
 		// RECIEVE RESPONSE
@@ -62,7 +63,7 @@ class phpUPnP
 	private function parseMSearchResponse( $response )
 	{
 		$responseArr = explode( "\r\n", $response );
-
+//var_dump($responseArr);
 		$parsedResponse = array();
 
 		foreach( $responseArr as $row ) {

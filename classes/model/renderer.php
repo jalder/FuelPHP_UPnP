@@ -46,6 +46,10 @@ class Model_Renderer extends \Model
 		}
 	}
 
+	public function loadCtrlFromDesc($description_url)
+	{
+		$this->ctrlurl = $this->getControlURL($description_url, 'AVTransport');
+	}
 
 	public function search()
 	{
@@ -62,15 +66,94 @@ class Model_Renderer extends \Model
 		return $results;
 	}
 
-	public function play($ctrlurl,$url)
+	public function play($description_url,$url)
 	{
+//		var_dump($description_url); die();
 		$args = array(
 			'InstanceID'=>0,
-			'CurrentURI'=>$url,
+			'CurrentURI'=>'<![CDATA['.$url.']]>',
+			//'CurrentURI' => $url,
 			'CurrentURIMetaData'=>'testmetadata'
 		);
+		var_dump($description_url);
+		$ctrlurl = $this->getControlURL($description_url, 'AVTransport');
+		var_dump($ctrlurl);
+		var_dump($args);
 		$response = $this->upnp->sendRequestToDevice('SetAVTransportURI',$args,$ctrlurl,$type = 'AVTransport');
+		//$this->instanceOnly('Play');
+		var_dump($response); //die();
+		//one upnp device automatically started playing
+		//the other (XBMC upnp client) requires you to send a Play command
+		$args = array('InstanceID'=>0,'Speed'=>1);
+		$this->upnp->sendRequestToDevice('Play',$args,$ctrlurl,$type = 'AVTransport');
 		return $response;
+	}
+
+	//this should be moved to the upnp model
+	public function getControlURL($description_url, $service = 'AVTransport')
+	{
+		$description = $this->getDescription($description_url);
+		//	var_dump($description); die();
+
+		switch($service)
+		{
+			case 'AVTransport':
+				$serviceType = 'urn:schemas-upnp-org:service:AVTransport:1';
+				break;
+			default:
+				$serviceType = 'urn:schemas-upnp-org:service:AVTransport:1';
+				break;
+		}
+
+		foreach($description['device']['serviceList']['service'] as $service)
+		{
+			//var_dump($service);
+			if($service['serviceType'] == $serviceType)
+			{
+				//var_dump($service); die();
+				$url = parse_url($description_url);
+				return $url['scheme'].'://'.$url['host'].':'.$url['port'].$service['controlURL']; //fix this to get device base url
+			}
+		}
+		//die();
+	}
+	//this should also be moved off to the upnp model
+	public function getDescription($description_url)
+	{
+		$upnp = new Model_Upnp();
+		return $upnp->get_description($description_url);
+	}
+
+	public function getBaseURL($url)
+	{
+		$parts = parse_url($url);
+		return $parts['scheme'].'://'.$parts['host'].':'.$parts['port'];
+	}
+
+	public function getIcon($description_url)
+	{
+		$description = $this->getDescription($description_url);
+		if(!$description)
+		{
+			return 'http://i.imgur.com/RT9OEQt.png';
+		}
+	//	var_dump($description);
+		if(!isset($description['device']['iconList']))
+		{
+			return 'defaulticon.jpg';
+		}
+		if(isset($description['device']['iconList']['icon']['url']))
+		{
+			return $this->getBaseURL($description_url).$description['device']['iconList']['icon']['url'];
+		}
+		else
+		{
+			foreach($description['device']['iconList']['icon'] as $icon)
+			{
+				return $this->getBaseURL($description_url).$icon['url'];
+			}
+		}
+		return '';
 	}
 
 	public function setNext($ctrlurl,$url)
@@ -85,6 +168,7 @@ class Model_Renderer extends \Model
 
 	public function getState()
 	{
+		//var_dump($this->instanceOnly('GetTransportInfo'));
 		return $this->instanceOnly('GetTransportInfo');
 	}
 
@@ -96,11 +180,10 @@ class Model_Renderer extends \Model
 	//helper function for calls that require only an instance id
 	private function instanceOnly($command,$type = 'AVTransport', $id = 0)
 	{
-		$upnp = new \phpUPnP();
 		$args = array(
 			'InstanceID'=>$id
 		);
-		$response = $upnp->sendRequestToDevice($command,$args,$this->ctrlurl.'serviceControl/AVTransport',$type);
+		$response = $this->upnp->sendRequestToDevice($command,$args,$this->ctrlurl,$type);
 		$response = \Format::forge($response,'xml:ns')->to_array();
 		return $response['s:Body']['u:'.$command.'Response'];
 	}
@@ -113,6 +196,12 @@ class Model_Renderer extends \Model
 	public function stop()
 	{
 		return $this->instanceOnly('Stop');
+	}
+	
+	public function unpause()
+	{
+		$args = array('InstanceID'=>0,'Speed'=>1);
+		return $this->upnp->sendRequestToDevice('Play',$args,$this->ctrlurl,$type = 'AVTransport');
 	}
 
 	public function pause()
@@ -132,8 +221,9 @@ class Model_Renderer extends \Model
 
 	public function seek($unit = 'TRACK_NR', $target=0)
 	{
-		$response = $this->upnp->sendRequestToDevice('Seek',$args,'AVTransport');
-		return $response;
+		$response = $this->upnp->sendRequestToDevice('Seek',$args,$this->ctrlurl.'serviceControl/AVTransport','AVTransport');
+		$response = \Format::forge($response,'xml:ns')->to_array();
+		return $response['s:Body']['u:SeekResponse'];
 	}
 
 }

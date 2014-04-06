@@ -111,4 +111,10 @@ class Controller_Server extends \Controller
 		$view = \View::forge('tree');
 		return $view;
 	}
+
+	public function action_explorer()
+	{
+		$view = \View::forge('explorer');
+		return $view;
+	}
 }

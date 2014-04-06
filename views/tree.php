@@ -4,6 +4,13 @@ if(isset($description)){
 }else{
 	$initial_pop = '/upnp/server/browse';
 }
+//band aid until properly wrapped into cast module
+//
+\Module::load('cast');
+$model_device = new \Cast\Model_Device();
+$devices = $model_device->getAll();
+
+//var_dump($devices);
 
 ?>
 <div id="tree" class="list-group">
@@ -22,8 +29,9 @@ if(isset($description)){
 			<div class="modal-body">
 				<input type="hidden" name="device" value="52c8a32c260495702ae8944b" />
 				<input type="hidden" name="url" value="" />
-			...	<span class="glyphicon glyphicon-play play-movie" rel="52c8a32c260495702ae8944b" title="Play on Roku"></span>
-				<span class="glyphicon glyphicon-play play-movie" rel="52e3f1ec2604956d077b23c6" title="Play on eHome"></span>
+				<?php foreach($devices as $d): ?>
+				...	<span class="glyphicon glyphicon-play play-movie" rel="<?php echo $d['_id']; ?>" title="Play on <?php echo $d['name']; ?>"></span>
+				<?php endforeach; ?>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

@@ -15,7 +15,21 @@ class Model_Mediaserver extends \Model
 		foreach($found as $server)
 		{
 			$curl = \Request::forge($server['location'],'curl');
-			$data = $curl->execute()->response();
+			//var_dump($server);
+			//$data = $curl->execute();
+			$curl->set_options(array(
+				CURLOPT_TIMEOUT => 5,
+				CURLOPT_FOLLOWLOCATION => true,
+			));
+			try{
+				$data = $curl->execute()->response();
+			} catch (\HttpNotFoundException $e)
+			{
+				//catch the 404
+				//die('caught');
+				continue;
+			}
+			//var_dump($data);
 			$description = \Format::forge($data->body,'xml:ns')->to_array();
 			$results[$server['location']] = $description;
 		}
@@ -64,10 +78,37 @@ class Model_Mediaserver extends \Model
 	
 	public function parseDescription($url)
 	{
-		$curl = \Request::forge($url,'curl');
-		$data = $curl->execute()->response();
-		$description = \Format::forge($data->body,'xml:ns')->to_array();
+		try{
+			$curl = \Request::forge($url,'curl');
+			$data = $curl->execute()->response();
+			$description = \Format::forge($data->body,'xml:ns')->to_array();
+		}
+		catch(\RequestException $e)
+		{
+			return '';
+		}
 		return $description;
+	}
+
+	public function getControlURL($description_url)
+	{
+		$baseurl = $this->getBaseURL($description_url);
+		$description = $this->parseDescription($description_url);
+		foreach($description['device']['serviceList']['service'] as $s)
+		{
+			if($s['serviceId'] == 'urn:upnp-org:serviceId:ContentDirectory')
+			{
+				return $baseurl.$s['controlURL'];
+			}
+		}
+		return $description;
+	}
+
+	public function getBaseURL($url)
+	{
+		$parts = parse_url($url);
+//		var_dump($parts);
+		return $parts['scheme'].'://'.$parts['host'].':'.$parts['port'];
 	}
 
 }
